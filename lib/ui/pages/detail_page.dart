@@ -9,21 +9,38 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
+  bool isLoaded = false;
+  DataDetail? dataDetail;
+
   @override
   void initState() {
     super.initState();
     context.read<DetailNewsBloc>().add(GetDetailNews(widget.link));
   }
 
+  void showSnackbar(BuildContext context, String text) {
+    final snackBar = SnackBar(
+      content: Text(text),
+      duration: Duration(seconds: 2),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
   @override
   Widget build(BuildContext context) {
-    Size size=MediaQuery.of(context).size;
+    Size size = MediaQuery.of(context).size;
     return Scaffold(
       appBar: AppBar(
         title: Text('Detail'),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        backgroundColor: primaryColor,
+        onPressed: () async {
+          if (dataDetail != null && isLoaded) {
+            await LocalDatabase.addFavorite(dataDetail!);
+            showSnackbar(context, 'Berhasil di tambahkan');
+          }
+        },
         child: Icon(Icons.favorite),
       ),
       body: SafeArea(
@@ -32,18 +49,21 @@ class _DetailPageState extends State<DetailPage> {
             if (state is DetailNewsLoading) {
               return CircularProgressIndicator();
             } else if (state is DetailNewsError) {
-              return Icon(Icons.error);
+              return Center(child: Text(state.msg));
             } else if (state is DetailNewsLoaded) {
-              DetailNews data = state.dataDetail;
+              DataDetail data = state.dataDetail;
+              dataDetail = data..link = widget.link;
+              isLoaded = true;
+
               return Container(
                 width: size.width,
                 height: size.height,
                 child: Column(
                   children: [
-                    Text(data.judul),
+                    Text(data.judul!),
                     Divider(),
                     Expanded(
-                      child: Text(data.body),
+                      child: Text(data.body!),
                     ),
                   ],
                 ),

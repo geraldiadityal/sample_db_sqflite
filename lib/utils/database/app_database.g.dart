@@ -85,7 +85,7 @@ class _$AppDatabase extends AppDatabase {
       },
       onCreate: (database, version) async {
         await database.execute(
-            'CREATE TABLE IF NOT EXISTS `Favorite` (`id` INTEGER NOT NULL, `judul` TEXT NOT NULL, `body` TEXT NOT NULL, `link` TEXT NOT NULL, `poster` TEXT NOT NULL, PRIMARY KEY (`id`))');
+            'CREATE TABLE IF NOT EXISTS `Favorite` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `judul` TEXT NOT NULL, `body` TEXT NOT NULL, `link` TEXT, `poster` TEXT NOT NULL)');
 
         await callback?.onCreate?.call(database, version);
       },
@@ -114,6 +114,18 @@ class _$FavoritesRepo extends FavoritesRepo {
                   'link': item.link,
                   'poster': item.poster
                 },
+            changeListener),
+        _favoriteDeletionAdapter = DeletionAdapter(
+            database,
+            'Favorite',
+            ['id'],
+            (Favorite item) => <String, Object?>{
+                  'id': item.id,
+                  'judul': item.judul,
+                  'body': item.body,
+                  'link': item.link,
+                  'poster': item.poster
+                },
             changeListener);
 
   final sqflite.DatabaseExecutor database;
@@ -124,41 +136,64 @@ class _$FavoritesRepo extends FavoritesRepo {
 
   final InsertionAdapter<Favorite> _favoriteInsertionAdapter;
 
+  final DeletionAdapter<Favorite> _favoriteDeletionAdapter;
+
   @override
   Future<List<Favorite>> findAllFavorite() async {
     return _queryAdapter.queryList('SELECT * FROM Favorite',
         mapper: (Map<String, Object?> row) => Favorite(
-            row['id'] as int,
-            row['judul'] as String,
-            row['body'] as String,
-            row['link'] as String,
-            row['poster'] as String));
+            id: row['id'] as int?,
+            judul: row['judul'] as String,
+            body: row['body'] as String,
+            link: row['link'] as String?,
+            poster: row['poster'] as String));
   }
 
   @override
-  Stream<List<String>> findJudulFavorite() {
-    return _queryAdapter.queryListStream('SELECT judul FROM Favorite',
-        mapper: (Map<String, Object?> row) => row.values.first as String,
-        queryableName: 'Favorite',
-        isView: false);
+  Future<List<String>> findJudulFavorite() async {
+    return _queryAdapter.queryList('SELECT judul FROM Favorite',
+        mapper: (Map<String, Object?> row) => row.values.first as String);
+  }
+
+  @override
+  Future<Favorite?> findFavoriteById(int id) async {
+    return _queryAdapter.query('SELECT * FROM Favorite where id = ?1',
+        mapper: (Map<String, Object?> row) => Favorite(
+            id: row['id'] as int?,
+            judul: row['judul'] as String,
+            body: row['body'] as String,
+            link: row['link'] as String?,
+            poster: row['poster'] as String),
+        arguments: [id]);
   }
 
   @override
   Stream<Favorite?> findFavoriteByTitle(String judul) {
     return _queryAdapter.queryStream('SELECT * FROM Favorite WHERE judul = ?1',
         mapper: (Map<String, Object?> row) => Favorite(
-            row['id'] as int,
-            row['judul'] as String,
-            row['body'] as String,
-            row['link'] as String,
-            row['poster'] as String),
+            id: row['id'] as int?,
+            judul: row['judul'] as String,
+            body: row['body'] as String,
+            link: row['link'] as String?,
+            poster: row['poster'] as String),
         arguments: [judul],
         queryableName: 'Favorite',
         isView: false);
   }
 
   @override
+  Future<void> deleteById(int id) async {
+    await _queryAdapter
+        .queryNoReturn('DELETE FROM Favorite where id = ?1', arguments: [id]);
+  }
+
+  @override
   Future<void> insertNewFavorite(Favorite Favorite) async {
     await _favoriteInsertionAdapter.insert(Favorite, OnConflictStrategy.abort);
+  }
+
+  @override
+  Future<void> deleteFavorite(Favorite Favorite) async {
+    await _favoriteDeletionAdapter.delete(Favorite);
   }
 }

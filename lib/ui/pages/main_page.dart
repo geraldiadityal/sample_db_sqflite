@@ -16,12 +16,11 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    Size size=MediaQuery.of(context).size;
+    Size size = MediaQuery.of(context).size;
+
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add),
-      ),
+          onPressed: () => Get.to(() => ListFavoritePage())),
       body: SafeArea(
         child: Container(
           width: size.width,
@@ -37,14 +36,45 @@ class _MainPageState extends State<MainPage> {
                 );
               } else if (state is ListNewsLoaded) {
                 List<News> listData = state.listNews;
-                return ListView.separated(
-                    itemBuilder: (BuildContext context, int index) {
-                      return CardNews(dataNews:listData[index]);
-                    },
-                    separatorBuilder: (BuildContext context, index) {
-                      return Divider();
-                    },
-                    itemCount: listData.length);
+
+                return SingleChildScrollView(
+                  child: ResponsiveGridRow(
+                    children: listData
+                        .asMap()
+                        .keys
+                        .toList()
+                        .map(
+                          (e) => ResponsiveGridCol(
+                            lg: e == 0 ? 12 : null,
+                            xs: e != 0 ? 6 : 12,
+                            md: e != 0 ? 3 : null,
+                            child: CardNews(
+                              dataNews: listData[e],
+                              index: e,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+                // return ListView.separated(
+                //     itemBuilder: (BuildContext context, int index) {
+                //       return ResponsiveGridRow(children: [
+                //         ResponsiveGridCol(
+                //           lg: index == 0 ? 12 : null,
+                //           xs: index != 0 ? 6 : 12,
+                //           md: index != 0 ? 3 : 12,
+                //           child: CardNews(dataNews: listData[index]),
+                //         ),
+                //       ]);
+                //       // return CardNews(dataNews:listData[index]);
+                //     },
+                //     separatorBuilder: (BuildContext context, index) {
+                //       return Container();
+                //     },
+                // itemCount: listData.length);
+              } else if (state is ListNewsError) {
+                return Text(state.msg);
               } else {
                 return Container();
               }
